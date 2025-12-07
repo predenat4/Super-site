@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="fr">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Futuriste</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      height: 100%;
+      width: 100%;
+    }
+
+    .chat-wrapper {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7fa8d8 100%);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-wrapper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .chat-header {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+
+    .chat-header h1 {
+      margin: 0;
+      color: white;
+      font-size: 28px;
+      font-weight: 600;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 1;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      animation: slideIn 0.3s ease-out;
+      max-width: 80%;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+    }
+
+    .message-bubble {
+      padding: 12px 18px;
+      border-radius: 18px;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .message.bot .message-bubble {
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      color: white;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.user .message-bubble {
+      background: white;
+      color: #1e293b;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .message.bot .message-avatar {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    .message.user .message-avatar {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    }
+
+    .chat-input-container {
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border-top: 2px solid rgba(255, 255, 255, 0.2);
+      z-index: 10;
+    }
+
+    .chat-input-form {
+      display: flex;
+      gap: 12px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 14px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 25px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1e293b;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .chat-input:focus {
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    .chat-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .send-button {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .send-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    }
+
+    .send-button:active {
+      transform: translateY(0);
+    }
+
+    .send-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      max-width: 80px;
+    }
+
+    .typing-indicator.active {
+      display: flex;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      30% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      color: white;
+      padding: 40px 20px;
+      opacity: 0.8;
+    }
+
+    .empty-state h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .empty-state p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="chat-wrapper">
+   <header class="chat-header">
+    <h1 id="bot-name">Assistant IA</h1>
+   </header>
+   <main class="chat-messages" id="chat-messages">
+    <div class="empty-state" id="empty-state">
+     <h2>✨ Bienvenue !</h2>
+     <p id="welcome-message">Bonjour ! Comment puis-je vous aider aujourd'hui ?</p>
+    </div>
+   </main>
+   <div class="typing-indicator" id="typing-indicator">
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+    <div class="typing-dot"></div>
+   </div>
+   <div class="chat-input-container">
+    <form class="chat-input-form" id="chat-form"><label for="user-input" style="position: absolute; left: -10000px;">Votre message</label> <input type="text" id="user-input" class="chat-input" placeholder="Posez votre question..." autocomplete="off" required> <button type="submit" class="send-button" id="send-button">Envoyer</button>
+    </form>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      bot_name: "Assistant IA",
+      welcome_message: "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+      primary_color: "#2563eb",
+      background_start: "#1e3c72",
+      background_middle: "#2a5298",
+      background_end: "#7fa8d8",
+      user_message_color: "#ffffff",
+      font_family: "Segoe UI",
+      font_size: 16
+    };
+
+    let messages = [];
+    let isTyping = false;
+
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const emptyState = document.getElementById('empty-state');
+
+    function getBotResponse(userMessage) {
+      const msg = userMessage.toLowerCase().trim();
+      
+      // Salutations
+      if (msg.includes('bonjour') || msg.includes('salut') || msg.includes('hello') || msg.includes('hey') || msg === 'hi') {
+        return "Bonjour ! Je suis votre assistant virtuel. Posez-moi vos questions et je vous donnerai des réponses claires et précises.";
+      }
+      
+      // Aide
+      if (msg.includes('aide') || msg.includes('help') || msg.includes('que peux-tu faire')) {
+        return "Je peux répondre à vos questions sur de nombreux sujets : sciences, histoire, géographie, mathématiques, technologie, culture générale, et bien plus. Posez-moi une question spécifique !";
+      }
+      
+      // Remerciements
+      if (msg.includes('merci') || msg.includes('thanks')) {
+        return "De rien ! Je suis là pour vous aider. N'hésitez pas à me poser d'autres questions.";
+      }
+
+      // Comment ça va
+      if ((msg.includes('comment') && msg.includes('vas')) || (msg.includes('ça') && msg.includes('va'))) {
+        return "Je fonctionne parfaitement ! Je suis prêt à répondre à toutes vos questions. Que souhaitez-vous savoir ?";
+      }
+
+      // Identité
+      if (msg.includes('qui es-tu') || msg.includes('qui es tu') || msg.includes('ton nom') || msg.includes('c\'est quoi ton nom')) {
+        return `Je suis ${window.elementSdk.config.bot_name || defaultConfig.bot_name}, un assistant conversationnel intelligent. Je suis conçu pour répondre à vos questions de manière claire et précise.`;
+      }
+
+      // ===== CAPITALES DU MONDE =====
+      if (msg.includes('capitale') && msg.includes('france')) {
+        return "La capitale de la France est Paris. Située sur la Seine, elle compte 2,2 millions d'habitants (12 millions dans l'agglomération). Paris est surnommée la 'Ville Lumière'.";
+      }
+      if (msg.includes('capitale') && msg.includes('canada')) {
+        return "La capitale du Canada est Ottawa, située en Ontario. Elle compte environ 1 million d'habitants et est bilingue (anglais-français).";
+      }
+      if (msg.includes('capitale') && msg.includes('italie')) {
+        return "La capitale de l'Italie est Rome. Fondée en 753 av. J.-C., elle abrite le Vatican et compte 2,8 millions d'habitants.";
+      }
+      if (msg.includes('capitale') && (msg.includes('allemagne') || msg.includes('german'))) {
+        return "La capitale de l'Allemagne est Berlin. Réunifiée en 1990, elle compte 3,7 millions d'habitants et est la plus grande ville du pays.";
+      }
+      if (msg.includes('capitale') && (msg.includes('espagne') || msg.includes('spain'))) {
+        return "La capitale de l'Espagne est Madrid. Située au centre du pays à 667m d'altitude, elle compte 3,3 millions d'habitants.";
+      }
+      if (msg.includes('capitale') && (msg.includes('royaume-uni') || msg.includes('angleterre') || msg.includes('uk'))) {
+        return "La capitale du Royaume-Uni est Londres. Fondée par les Romains, elle compte 9 millions d'habitants et est un centre financier mondial.";
+      }
+      if (msg.includes('capitale') && (msg.includes('japon') || msg.includes('japan'))) {
+        return "La capitale du Japon est Tokyo. Avec 14 millions d'habitants (37 millions dans l'agglomération), c'est la plus grande métropole du monde.";
+      }
+      if (msg.includes('capitale') && (msg.includes('chine') || msg.includes('china'))) {
+        return "La capitale de la Chine est Pékin (Beijing). Elle compte 21 millions d'habitants et abrite la Cité Interdite.";
+      }
+      if (msg.includes('capitale') && (msg.includes('états-unis') || msg.includes('usa') || msg.includes('etats-unis'))) {
+        return "La capitale des États-Unis est Washington D.C. (District of Columbia). Elle compte 700 000 habitants et abrite la Maison Blanche et le Capitole.";
+      }
+      if (msg.includes('capitale') && (msg.includes('brésil') || msg.includes('brazil') || msg.includes('bresil'))) {
+        return "La capitale du Brésil est Brasília. Inaugurée en 1960, elle a été conçue par l'architecte Oscar Niemeyer et compte 3 millions d'habitants.";
+      }
+      if (msg.includes('capitale') && (msg.includes('russie') || msg.includes('russia'))) {
+        return "La capitale de la Russie est Moscou. C'est la plus grande ville d'Europe avec 12,6 millions d'habitants. Elle abrite le Kremlin et la Place Rouge.";
+      }
+      if (msg.includes('capitale') && (msg.includes('inde') || msg.includes('india'))) {
+        return "La capitale de l'Inde est New Delhi. Elle fait partie de la région de Delhi qui compte 32 millions d'habitants, ce qui en fait la deuxième agglomération la plus peuplée du monde.";
+      }
+      if (msg.includes('capitale') && (msg.includes('australie') || msg.includes('australia'))) {
+        return "La capitale de l'Australie est Canberra (et non Sydney). Elle compte 430 000 habitants et a été spécialement construite pour être la capitale en 1913.";
+      }
+      if (msg.includes('capitale') && msg.includes('egypte')) {
+        return "La capitale de l'Égypte est Le Caire. Avec 20 millions d'habitants, c'est la plus grande ville d'Afrique et du monde arabe. Elle se trouve près des pyramides de Gizeh.";
+      }
+      if (msg.includes('capitale') && (msg.includes('maroc') || msg.includes('morocco'))) {
+        return "La capitale du Maroc est Rabat. Elle compte 580 000 habitants. Casablanca est la plus grande ville mais n'est pas la capitale.";
+      }
+      if (msg.includes('capitale') && (msg.includes('suisse') || msg.includes('switzerland'))) {
+        return "La capitale de la Suisse est Berne. Elle compte 144 000 habitants et est le siège du gouvernement fédéral suisse depuis 1848.";
+      }
+
+      // ===== GÉOGRAPHIE =====
+      if (msg.includes('combien') && msg.includes('continent')) {
+        return "Il y a 7 continents sur Terre : l'Afrique, l'Amérique du Nord, l'Amérique du Sud, l'Antarctique, l'Asie, l'Europe et l'Océanie.";
+      }
+      if ((msg.includes('plus grand') || msg.includes('plus gros')) && msg.includes('continent')) {
+        return "L'Asie est le plus grand continent avec 44,6 millions de km². Elle représente 30% des terres émergées et abrite 60% de la population mondiale.";
+      }
+      if ((msg.includes('plus grand') || msg.includes('plus gros')) && msg.includes('océan')) {
+        return "Le plus grand océan du monde est l'océan Pacifique. Il couvre 165 millions de km², soit 46% de la surface des océans et un tiers de la surface terrestre.";
+      }
+      if ((msg.includes('plus long') || msg.includes('plus grande')) && msg.includes('fleuve')) {
+        return "Le plus long fleuve du monde est le Nil en Afrique avec 6 650 km. Il traverse 11 pays avant de se jeter dans la Méditerranée. L'Amazone est le deuxième avec 6 400 km.";
+      }
+      if ((msg.includes('plus haute') || msg.includes('plus grand')) && msg.includes('montagne')) {
+        return "La plus haute montagne du monde est le Mont Everest dans l'Himalaya. Son sommet culmine à 8 848,86 mètres d'altitude à la frontière entre le Népal et le Tibet.";
+      }
+      if ((msg.includes('plus profond') || msg.includes('plus profonde')) && msg.includes('océan')) {
+        return "Le point le plus profond des océans est la fosse des Mariannes dans l'océan Pacifique. Le Challenger Deep atteint 10 994 mètres de profondeur.";
+      }
+      if (msg.includes('plus grand') && msg.includes('désert')) {
+        return "Le plus grand désert du monde est l'Antarctique (14 millions de km²). Le plus grand désert chaud est le Sahara en Afrique (9 millions de km²).";
+      }
+      if (msg.includes('plus grand') && msg.includes('pays')) {
+        return "Le plus grand pays du monde est la Russie avec 17,1 millions de km². Elle s'étend sur 11 fuseaux horaires et couvre 11% des terres émergées.";
+      }
+      if (msg.includes('plus petit') && msg.includes('pays')) {
+        return "Le plus petit pays du monde est le Vatican avec seulement 0,44 km². C'est une enclave à Rome, siège de l'Église catholique.";
+      }
+      if (msg.includes('population') && msg.includes('mondiale')) {
+        return "La population mondiale est d'environ 8 milliards d'habitants en 2024. L'Inde est le pays le plus peuplé (1,43 milliard), suivie de la Chine (1,42 milliard).";
+      }
+
+      // ===== MATHÉMATIQUES =====
+      if (msg.match(/combien font \d+ \+ \d+/) || msg.match(/\d+ \+ \d+/)) {
+        const numbers = msg.match(/\d+/g);
+        if (numbers && numbers.length >= 2) {
+          const sum = parseInt(numbers[0]) + parseInt(numbers[1]);
+          return `${numbers[0]} + ${numbers[1]} = ${sum}`;
+        }
+      }
+      if (msg.match(/combien font \d+ - \d+/) || msg.match(/\d+ - \d+/)) {
+        const numbers = msg.match(/\d+/g);
+        if (numbers && numbers.length >= 2) {
+          const diff = parseInt(numbers[0]) - parseInt(numbers[1]);
+          return `${numbers[0]} - ${numbers[1]} = ${diff}`;
+        }
+      }
+      if (msg.match(/combien font \d+ x \d+/) || msg.match(/\d+ x \d+/) || msg.match(/\d+ \* \d+/)) {
+        const numbers = msg.match(/\d+/g);
+        if (numbers && numbers.length >= 2) {
+          const product = parseInt(numbers[0]) * parseInt(numbers[1]);
+          return `${numbers[0]} × ${numbers[1]} = ${product}`;
+        }
+      }
+      if (msg.match(/combien font \d+ \/ \d+/) || msg.match(/\d+ divisé par \d+/)) {
+        const numbers = msg.match(/\d+/g);
+        if (numbers && numbers.length >= 2) {
+          const quotient = parseInt(numbers[0]) / parseInt(numbers[1]);
+          return `${numbers[0]} ÷ ${numbers[1]} = ${quotient}`;
+        }
+      }
+      if (msg.includes('racine carrée') && msg.includes('de')) {
+        const numbers = msg.match(/\d+/g);
+        if (numbers && numbers.length >= 1) {
+          const sqrt = Math.sqrt(parseInt(numbers[0]));
+          return `La racine carrée de ${numbers[0]} est ${sqrt.toFixed(2)}`;
+        }
+      }
+      if (msg.includes('théorème de pythagore') || msg.includes('pythagore')) {
+        return "Le théorème de Pythagore stipule que dans un triangle rectangle : a² + b² = c² où c est l'hypoténuse et a et b sont les deux autres côtés.";
+      }
+      if (msg.includes('nombre pi') || msg === 'pi') {
+        return "Le nombre Pi (π) est une constante mathématique égale à environ 3,14159265359. C'est le rapport entre la circonférence d'un cercle et son diamètre.";
+      }
+
+      // ===== PHYSIQUE =====
+      if (msg.includes('vitesse') && msg.includes('lumière')) {
+        return "La vitesse de la lumière dans le vide est de 299 792 458 m/s (environ 300 000 km/s). C'est la vitesse maximale dans l'univers selon la théorie de la relativité d'Einstein.";
+      }
+      if (msg.includes('gravité') || msg.includes('gravitation')) {
+        return "La gravité est une force d'attraction entre les masses. Sur Terre, l'accélération gravitationnelle est de 9,81 m/s². Isaac Newton a formulé la loi de la gravitation universelle en 1687.";
+      }
+      if (msg.includes('théorie de la relativité') || (msg.includes('relativité') && msg.includes('einstein'))) {
+        return "La théorie de la relativité d'Einstein (1905-1915) révolutionne la physique. La relativité restreinte lie espace et temps. La relativité générale décrit la gravité comme une courbure de l'espace-temps.";
+      }
+      if (msg.includes('atome') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "Un atome est la plus petite unité d'un élément chimique. Il est composé d'un noyau (protons et neutrons) entouré d'électrons. La taille d'un atome est d'environ 0,1 nanomètre.";
+      }
+      if (msg.includes('vitesse du son')) {
+        return "La vitesse du son dans l'air à 20°C est d'environ 343 m/s (1 235 km/h). Elle varie selon le milieu : 1 480 m/s dans l'eau et 5 000 m/s dans l'acier.";
+      }
+      if (msg.includes('pourquoi') && msg.includes('ciel') && msg.includes('bleu')) {
+        return "Le ciel est bleu à cause de la diffusion Rayleigh. Les molécules d'air diffusent davantage la lumière bleue (ondes courtes) que les autres couleurs du spectre solaire.";
+      }
+      if (msg.includes('énergie') && (msg.includes('e=mc') || msg.includes('e = mc'))) {
+        return "E=mc² est l'équation la plus célèbre d'Einstein. Elle signifie que l'énergie (E) est égale à la masse (m) multipliée par la vitesse de la lumière (c) au carré. Elle montre l'équivalence masse-énergie.";
+      }
+
+      // ===== CHIMIE =====
+      if (msg.includes('tableau périodique') || msg.includes('éléments chimiques')) {
+        return "Le tableau périodique classe les 118 éléments chimiques connus. Créé par Mendeleïev en 1869, il organise les éléments par numéro atomique croissant et propriétés similaires.";
+      }
+      if (msg.includes('formule') && msg.includes('eau')) {
+        return "La formule chimique de l'eau est H₂O. Une molécule d'eau contient 2 atomes d'hydrogène (H) liés à 1 atome d'oxygène (O).";
+      }
+      if (msg.includes('oxygène') && (msg.includes('c\'est quoi') || msg.includes('symbole'))) {
+        return "L'oxygène (O) est l'élément chimique de numéro atomique 8. C'est un gaz essentiel à la vie, représentant 21% de l'atmosphère terrestre. Il a été découvert en 1774.";
+      }
+      if (msg.includes('hydrogène') && (msg.includes('c\'est quoi') || msg.includes('symbole'))) {
+        return "L'hydrogène (H) est l'élément le plus simple et le plus abondant de l'univers (75% de la matière). Son numéro atomique est 1. C'est un gaz très léger.";
+      }
+      if (msg.includes('carbone') && (msg.includes('c\'est quoi') || msg.includes('symbole'))) {
+        return "Le carbone (C) est l'élément de base de la vie organique. De numéro atomique 6, il peut former 4 liaisons chimiques. Il existe sous forme de graphite, diamant et graphène.";
+      }
+      if (msg.includes('or') && msg.includes('symbole')) {
+        return "Le symbole chimique de l'or est Au (du latin Aurum). C'est un métal précieux de numéro atomique 79, très rare et inaltérable.";
+      }
+      if (msg.includes('ph') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "Le pH mesure l'acidité ou la basicité d'une solution sur une échelle de 0 à 14. pH < 7 = acide, pH = 7 = neutre, pH > 7 = basique. L'eau pure a un pH de 7.";
+      }
+
+      // ===== ASTRONOMIE =====
+      if ((msg.includes('distance') || msg.includes('loin')) && msg.includes('lune')) {
+        return "La distance moyenne entre la Terre et la Lune est de 384 400 km. Elle varie de 356 500 km (périgée) à 406 700 km (apogée) en raison de l'orbite elliptique.";
+      }
+      if ((msg.includes('distance') || msg.includes('loin')) && msg.includes('soleil')) {
+        return "La distance moyenne Terre-Soleil est de 149,6 millions de km (1 UA - Unité Astronomique). La lumière du Soleil met 8 minutes et 20 secondes pour nous parvenir.";
+      }
+      if (msg.includes('combien') && msg.includes('planète')) {
+        return "Le système solaire compte 8 planètes : Mercure, Vénus, Terre, Mars (telluriques), Jupiter, Saturne, Uranus, Neptune (gazeuses). Pluton a été reclassée en planète naine en 2006.";
+      }
+      if ((msg.includes('plus grosse') || msg.includes('plus grande')) && msg.includes('planète')) {
+        return "Jupiter est la plus grande planète du système solaire. Son diamètre est de 142 984 km (11 fois celui de la Terre) et sa masse représente 2,5 fois celle de toutes les autres planètes réunies.";
+      }
+      if (msg.includes('galaxie') && (msg.includes('c\'est quoi') || msg.includes('voie lactée'))) {
+        return "Une galaxie est un ensemble d'étoiles, de gaz et de poussières liés par la gravité. Notre galaxie, la Voie Lactée, contient 200 à 400 milliards d'étoiles et mesure 100 000 années-lumière de diamètre.";
+      }
+      if (msg.includes('big bang')) {
+        return "Le Big Bang est la théorie cosmologique de la naissance de l'univers il y a 13,8 milliards d'années. L'univers était initialement infiniment dense et chaud, puis s'est étendu et refroidi.";
+      }
+
+      // ===== BIOLOGIE =====
+      if (msg.includes('adn') || msg.includes('acide désoxyribonucléique')) {
+        return "L'ADN (Acide DésoxyriboNucléique) est la molécule qui contient l'information génétique. Elle a une structure en double hélice découverte par Watson et Crick en 1953.";
+      }
+      if (msg.includes('photosynthèse')) {
+        return "La photosynthèse est le processus par lequel les plantes transforment le CO₂ et l'eau en glucose et oxygène grâce à l'énergie lumineuse. Équation : 6CO₂ + 6H₂O + lumière → C₆H₁₂O₆ + 6O₂";
+      }
+      if (msg.includes('cellule') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "La cellule est l'unité de base de tout être vivant. Le corps humain contient environ 37 000 milliards de cellules. Il existe deux types : procaryotes (sans noyau) et eucaryotes (avec noyau).";
+      }
+
+      // ===== TECHNOLOGIE =====
+      if (msg.includes('python') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "Python est un langage de programmation créé en 1991 par Guido van Rossum. Populaire pour sa syntaxe claire, il est utilisé en IA, data science, web, automatisation. Version actuelle : Python 3.12.";
+      }
+      if (msg.includes('javascript') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "JavaScript est un langage de programmation créé en 1995 par Brendan Eich. Il rend les pages web interactives et est essentiel au développement web moderne (front-end et back-end avec Node.js).";
+      }
+      if ((msg.includes('intelligence artificielle') || msg.includes('ia')) && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "L'Intelligence Artificielle (IA) vise à créer des machines capables d'imiter l'intelligence humaine : apprentissage, raisonnement, reconnaissance. Les domaines incluent le machine learning, les réseaux de neurones et le deep learning.";
+      }
+      if (msg.includes('internet') && (msg.includes('c\'est quoi') || msg.includes('qu\'est-ce'))) {
+        return "Internet est un réseau mondial d'ordinateurs interconnectés. Créé dans les années 1960-70 (ARPANET), rendu public en 1991 avec le World Wide Web de Tim Berners-Lee. Plus de 5 milliards d'utilisateurs en 2024.";
+      }
+      if (msg.includes('blockchain')) {
+        return "La blockchain est une technologie de stockage et de transmission d'informations de manière décentralisée et sécurisée. C'est la base des cryptomonnaies comme le Bitcoin (créé en 2009).";
+      }
+
+      // ===== HISTOIRE =====
+      if (msg.includes('première guerre mondiale') || msg.includes('1ere guerre')) {
+        return "La Première Guerre mondiale (1914-1918) a opposé les Alliés (France, Royaume-Uni, Russie, USA) aux Empires centraux (Allemagne, Autriche-Hongrie). Bilan : 18 millions de morts.";
+      }
+      if (msg.includes('seconde guerre mondiale') || msg.includes('2eme guerre') || msg.includes('2nde guerre')) {
+        return "La Seconde Guerre mondiale (1939-1945) a opposé les Alliés (USA, URSS, Royaume-Uni, France) à l'Axe (Allemagne nazie, Italie, Japon). Bilan : 70 millions de morts.";
+      }
+      if (msg.includes('révolution française')) {
+        return "La Révolution française (1789-1799) a aboli la monarchie absolue et proclamé la République. Événements clés : prise de la Bastille (14 juillet 1789), Déclaration des droits de l'homme (26 août 1789).";
+      }
+
+      // ===== ACTUALITÉ GÉNÉRALE =====
+      if (msg.includes('météo') || msg.includes('temps qu\'il fait')) {
+        return "Je n'ai pas accès aux données météo en temps réel car je ne suis pas connecté à Internet. Pour connaître la météo actuelle, consultez Météo France, Weather.com ou votre application météo.";
+      }
+      if (msg.includes('quelle heure') || msg.includes('l\'heure')) {
+        const now = new Date();
+        const heures = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const secondes = now.getSeconds().toString().padStart(2, '0');
+        return `Il est actuellement ${heures}:${minutes}:${secondes}.`;
+      }
+      if (msg.includes('quelle date') || msg.includes('quel jour') || msg.includes('aujourd\'hui')) {
+        const now = new Date();
+        const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+        const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        return `Nous sommes le ${jours[now.getDay()]} ${now.getDate()} ${mois[now.getMonth()]} ${now.getFullYear()}.`;
+      }
+
+      // Réponse par défaut
+      return "Je comprends votre question, mais je n'ai pas de réponse précise dans ma base de connaissances. Je peux vous renseigner sur : capitales mondiales, géographie, mathématiques, physique, chimie, astronomie, biologie, technologie, histoire. Reformulez votre question !";
+    }
+
+    function createMessageElement(text, sender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${sender}`;
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = text;
+      
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(bubble);
+      
+      return messageDiv;
+    }
+
+    function showTypingIndicator() {
+      typingIndicator.classList.add('active');
+      chatMessages.appendChild(typingIndicator);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      typingIndicator.classList.remove('active');
+      if (typingIndicator.parentNode) {
+        typingIndicator.parentNode.removeChild(typingIndicator);
+      }
+    }
+
+    async function addMessage(text, sender) {
+      if (emptyState.style.display !== 'none') {
+        emptyState.style.display = 'none';
+      }
+
+      const messageId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      
+      const result = await window.dataSdk.create({
+        id: messageId,
+        message: text,
+        sender: sender,
+        timestamp: Date.now()
+      });
+
+      if (!result.isOk) {
+        console.error('Erreur lors de l\'enregistrement du message');
+      }
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      
+      const text = userInput.value.trim();
+      if (!text || isTyping) return;
+
+      sendButton.disabled = true;
+      userInput.disabled = true;
+
+      await addMessage(text, 'user');
+      userInput.value = '';
+
+      isTyping = true;
+      showTypingIndicator();
+
+      setTimeout(async () => {
+        const response = getBotResponse(text);
+        hideTypingIndicator();
+        await addMessage(response, 'bot');
+        isTyping = false;
+        sendButton.disabled = false;
+        userInput.disabled = false;
+        userInput.focus();
+      }, 1000 + Math.random() * 1000);
+    }
+
+    chatForm.addEventListener('submit', handleSubmit);
+
+    const dataHandler = {
+      onDataChanged(data) {
+        messages = data.sort((a, b) => a.timestamp - b.timestamp);
+        
+        const existingMessages = new Map(
+          [...chatMessages.querySelectorAll('.message')].map(el => [el.dataset.messageId, el])
+        );
+
+        messages.forEach(msg => {
+          if (!existingMessages.has(msg.id)) {
+            const messageEl = createMessageElement(msg.message, msg.sender);
+            messageEl.dataset.messageId = msg.id;
+            chatMessages.appendChild(messageEl);
+          }
+          existingMessages.delete(msg.id);
+        });
+
+        existingMessages.forEach(el => el.remove());
+
+        if (messages.length > 0 && emptyState.style.display !== 'none') {
+          emptyState.style.display = 'none';
+        }
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    };
+
+    async function onConfigChange(config) {
+      const botNameEl = document.getElementById('bot-name');
+      const welcomeMessageEl = document.getElementById('welcome-message');
+      const chatWrapper = document.querySelector('.chat-wrapper');
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      const fontSize = config.font_size || defaultConfig.font_size;
+
+      botNameEl.textContent = config.bot_name || defaultConfig.bot_name;
+      welcomeMessageEl.textContent = config.welcome_message || defaultConfig.welcome_message;
+
+      chatWrapper.style.background = `linear-gradient(135deg, ${config.background_start || defaultConfig.background_start} 0%, ${config.background_middle || defaultConfig.background_middle} 50%, ${config.background_end || defaultConfig.background_end} 100%)`;
+
+      document.body.style.fontFamily = `${fontFamily}, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+      
+      botNameEl.style.fontSize = `${fontSize * 1.75}px`;
+      welcomeMessageEl.style.fontSize = `${fontSize}px`;
+      
+      document.querySelectorAll('.message-bubble').forEach(bubble => {
+        bubble.style.fontSize = `${fontSize}px`;
+      });
+
+      userInput.style.fontSize = `${fontSize}px`;
+      sendButton.style.fontSize = `${fontSize}px`;
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .message.bot .message-bubble {
+          background: linear-gradient(135deg, ${config.primary_color || defaultConfig.primary_color} 0%, ${config.primary_color || defaultConfig.primary_color}dd 100%) !important;
+        }
+        .message.user .message-bubble {
+          background: ${config.user_message_color || defaultConfig.user_message_color} !important;
+        }
+        .send-button {
+          background: linear-gradient(135deg, ${config.primary_color || defaultConfig.primary_color} 0%, ${config.primary_color || defaultConfig.primary_color}dd 100%) !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    async function init() {
+      const initResult = await window.dataSdk.init(dataHandler);
+      if (!initResult.isOk) {
+        console.error('Erreur lors de l\'initialisation du SDK de données');
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.background_start || defaultConfig.background_start,
+                set: (value) => {
+                  config.background_start = value;
+                  window.elementSdk.setConfig({ background_start: value });
+                }
+              },
+              {
+                get: () => config.background_middle || defaultConfig.background_middle,
+                set: (value) => {
+                  config.background_middle = value;
+                  window.elementSdk.setConfig({ background_middle: value });
+                }
+              },
+              {
+                get: () => config.background_end || defaultConfig.background_end,
+                set: (value) => {
+                  config.background_end = value;
+                  window.elementSdk.setConfig({ background_end: value });
+                }
+              },
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (value) => {
+                  config.primary_color = value;
+                  window.elementSdk.setConfig({ primary_color: value });
+                }
+              },
+              {
+                get: () => config.user_message_color || defaultConfig.user_message_color,
+                set: (value) => {
+                  config.user_message_color = value;
+                  window.elementSdk.setConfig({ user_message_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                config.font_family = value;
+                window.elementSdk.setConfig({ font_family: value });
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                config.font_size = value;
+                window.elementSdk.setConfig({ font_size: value });
+              }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["bot_name", config.bot_name || defaultConfig.bot_name],
+            ["welcome_message", config.welcome_message || defaultConfig.welcome_message]
+          ])
+        });
+      }
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9aa0e83a21474b0a',t:'MTc2NTA3NzgzNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
